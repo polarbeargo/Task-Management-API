@@ -23,10 +23,20 @@ func NewRefreshHandler(db *gorm.DB, authService services.AuthService) *RefreshHa
 }
 
 func (h *RefreshHandler) Refresh(c *gin.Context) {
-	// Implement the refresh token logic here
+	var req RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	accessToken, refreshToken, expiresIn, err := h.authService.RefreshToken(h.db, req.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired refresh token"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  "accessToken",
-		"refresh_token": "refreshToken",
-		"expires_in":    3600,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"expires_in":    expiresIn,
 	})
 }
