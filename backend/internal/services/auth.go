@@ -12,9 +12,11 @@ import (
 )
 
 type AuthService interface {
-	LoginUser(db *gorm.DB, username, password string) (*models.User, error)
+	LoginUser(db *gorm.DB, email, password string) (*models.User, error)
 	GenerateToken(db *gorm.DB, userID uuid.UUID) (string, string, error)
 	RefreshToken(db *gorm.DB, refreshToken string) (string, string, int64, error)
+	GetUserPermissions(db *gorm.DB, userID uuid.UUID) ([]string, error)
+	RevokeToken(db *gorm.DB, refreshToken string) error
 }
 
 type AuthServiceImpl struct{}
@@ -47,9 +49,9 @@ func VerifyPassword(hashedPassword, plainPassword string) bool {
 	return err == nil
 }
 
-func (s *AuthServiceImpl) LoginUser(db *gorm.DB, username, password string) (*models.User, error) {
+func (s *AuthServiceImpl) LoginUser(db *gorm.DB, email, password string) (*models.User, error) {
 	var user models.User
-	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+	if err := db.Where("email = ? AND is_active = ?", email, true).First(&user).Error; err != nil {
 		return nil, err
 	}
 	if !VerifyPassword(user.Password, password) {
@@ -58,11 +60,26 @@ func (s *AuthServiceImpl) LoginUser(db *gorm.DB, username, password string) (*mo
 	return &user, nil
 }
 
-func (s *AuthServiceImpl) GenerateToken(db *gorm.DB, userID uuid.UUID) (string, string, error) {
+func (s *AuthServiceImpl) GetUserPermissions(db *gorm.DB, userID uuid.UUID) ([]string, error) {
+	var permissions []string
+	err := db.Raw(`SELECT DISTINCT p.resource || ':' || p.action FROM permissions p
+		JOIN role_permissions rp ON p.id = rp.permission_id
+		JOIN user_roles ur ON rp.role_id = ur.role_id
+		WHERE ur.user_id = ?`, userID).Scan(&permissions).Error
+	if err != nil {
+		return []string{}, err
+	}
+	return permissions, nil
+}
 
+func (s *AuthServiceImpl) RevokeToken(db *gorm.DB, refreshToken string) error {
+	return db.Where("refresh_token = ?", refreshToken).Delete(&models.Token{}).Error
+}
+
+func (s *AuthServiceImpl) GenerateToken(db *gorm.DB, userID uuid.UUID) (string, string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "default_secret"
+		secret = "default_secret_change_in_production"
 	}
 
 	var roleName string
@@ -72,7 +89,7 @@ func (s *AuthServiceImpl) GenerateToken(db *gorm.DB, userID uuid.UUID) (string, 
 	}
 
 	var permissions []string
-	err = db.Raw(`SELECT p.resource || ':' || p.action FROM permissions p
+	err = db.Raw(`SELECT DISTINCT p.resource || ':' || p.action FROM permissions p
 		JOIN role_permissions rp ON p.id = rp.permission_id
 		JOIN user_roles ur ON rp.role_id = ur.role_id
 		WHERE ur.user_id = ?`, userID).Scan(&permissions).Error
@@ -80,12 +97,17 @@ func (s *AuthServiceImpl) GenerateToken(db *gorm.DB, userID uuid.UUID) (string, 
 		permissions = []string{}
 	}
 
+	now := time.Now()
 	accessTokenClaims := jwt.MapClaims{
 		"user_id":     userID.String(),
 		"role":        roleName,
 		"permissions": permissions,
-		"exp":         time.Now().Add(time.Hour).Unix(),
+		"iat":         now.Unix(),
+		"exp":         now.Add(time.Hour).Unix(),
+		"iss":         "taskify-backend",
+		"aud":         "taskify-users",
 	}
+
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessTokenClaims)
 	accessTokenString, err := accessToken.SignedString([]byte(secret))
 	if err != nil {
@@ -98,13 +120,14 @@ func (s *AuthServiceImpl) GenerateToken(db *gorm.DB, userID uuid.UUID) (string, 
 	}
 	refreshTokenString := refreshTokenUUID.String()
 
-	expiresAt := time.Now().Add(time.Hour)
+	expiresAt := now.Add(7 * 24 * time.Hour) 
 	token := models.Token{
 		ID:           uuid.Must(uuid.NewV4()),
 		UserId:       userID,
 		RefreshToken: refreshTokenUUID,
 		ExpiresAt:    expiresAt,
 	}
+
 	if err := db.Create(&token).Error; err != nil {
 		return "", "", err
 	}
