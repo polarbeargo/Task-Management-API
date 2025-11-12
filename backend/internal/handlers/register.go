@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -61,6 +62,8 @@ func (h *RegisterHandler) Registration(c *gin.Context) {
 
 	user, err := h.registerService.RegisterUser(h.db, req)
 	if err != nil {
+		log.Printf("❌ Registration error: %v", err)
+
 		if strings.Contains(err.Error(), "email already exists") {
 			c.JSON(http.StatusConflict, gin.H{
 				"error":   "Registration failed",
@@ -96,7 +99,7 @@ func (h *RegisterHandler) Registration(c *gin.Context) {
 			Department: user.Department,
 			Position:   user.Position,
 			IsActive:   user.IsActive,
-			Role:       "user", 
+			Role:       "user",
 		},
 	}
 

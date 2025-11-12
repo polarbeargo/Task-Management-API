@@ -39,10 +39,10 @@ func NewAuthorizationService(db *gorm.DB) AuthorizationService {
 
 type AuthorizationRequest struct {
 	UserID     uuid.UUID              `json:"user_id"`
-	Resource   string                 `json:"resource"`    
-	Action     string                 `json:"action"`      
-	ResourceID *uuid.UUID             `json:"resource_id"` 
-	Context    map[string]interface{} `json:"context"`     
+	Resource   string                 `json:"resource"`
+	Action     string                 `json:"action"`
+	ResourceID *uuid.UUID             `json:"resource_id"`
+	Context    map[string]interface{} `json:"context"`
 	IPAddress  string                 `json:"ip_address"`
 	UserAgent  string                 `json:"user_agent"`
 	RequestID  string                 `json:"request_id"`
@@ -53,9 +53,9 @@ type AuthorizationDecision struct {
 	Resource   string                 `json:"resource"`
 	Action     string                 `json:"action"`
 	ResourceID *uuid.UUID             `json:"resource_id"`
-	Decision   string                 `json:"decision"` 
+	Decision   string                 `json:"decision"`
 	Reason     string                 `json:"reason"`
-	PolicyType string                 `json:"policy_type"` 
+	PolicyType string                 `json:"policy_type"`
 	Context    map[string]interface{} `json:"context"`
 	Timestamp  time.Time              `json:"timestamp"`
 	IPAddress  string                 `json:"ip_address"`
@@ -104,12 +104,14 @@ func (s *AuthorizationServiceImpl) AssignRole(ctx context.Context, userID, roleI
 		return err
 	}
 
+	now := time.Now()
 	userRole := models.UserRole{
-		ID:         uuid.Must(uuid.NewV4()),
 		UserID:     userID,
 		RoleID:     roleID,
-		AssignedBy: assignedBy,
-		AssignedAt: time.Now(),
+		AssignedBy: &assignedBy,
+		AssignedAt: &now,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 
 	return s.db.WithContext(ctx).Create(&userRole).Error
@@ -317,14 +319,14 @@ func (s *AuthorizationServiceImpl) CreatePermission(ctx context.Context, resourc
 }
 
 func (s *AuthorizationServiceImpl) GrantPermissionToRole(ctx context.Context, roleID, permissionID, grantedBy uuid.UUID) error {
+	now := time.Now()
 	rolePermission := models.RolePermission{
-		ID:           uuid.Must(uuid.NewV4()),
 		RoleID:       roleID,
 		PermissionID: permissionID,
-		AssignedBy:   grantedBy,
-		AssignedAt:   time.Now(),
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		AssignedBy:   &grantedBy,
+		AssignedAt:   &now,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 
 	return s.db.WithContext(ctx).Create(&rolePermission).Error

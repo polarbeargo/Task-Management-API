@@ -4,8 +4,8 @@ INSERT INTO roles (id, name) VALUES
     ('00000000-0000-0000-0000-000000000002', 'admin');
 
 
-INSERT INTO users (id, email, password_hash) VALUES
-    ('00000000-0000-0000-0000-000000000010', 'admin@example.com', 'admin_password_hash');
+INSERT INTO users (id, username, email, password) VALUES
+    ('00000000-0000-0000-0000-000000000010', 'admin_user', 'admin@example.com', '$2a$10$4DpVg6a3.jPMnkIx.U3R4exDtbr6ivuCS//cpYdHkJh4/txpop6ey');
 
 
 INSERT INTO user_roles (user_id, role_id) VALUES

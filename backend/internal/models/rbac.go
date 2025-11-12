@@ -8,15 +8,14 @@ import (
 )
 
 type Role struct {
-	ID          uuid.UUID      `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	Name        string         `json:"name" gorm:"unique;not null"`
-	Description string         `json:"description"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+	ID          uuid.UUID `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	Name        string    `json:"name" gorm:"unique;not null"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 
-	CreatedBy  uuid.UUID `json:"created_by" gorm:"type:uuid"`
-	ModifiedBy uuid.UUID `json:"modified_by" gorm:"type:uuid"`
+	CreatedBy  uuid.UUID `json:"created_by" gorm:"type:uuid;-"`
+	ModifiedBy uuid.UUID `json:"modified_by" gorm:"type:uuid;-"`
 
 	Users       []UserRole       `json:"users,omitempty" gorm:"foreignKey:RoleID"`
 	Permissions []RolePermission `json:"permissions,omitempty" gorm:"foreignKey:RoleID"`
@@ -39,43 +38,41 @@ type Permission struct {
 }
 
 type UserRole struct {
-	ID         uuid.UUID      `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	UserID     uuid.UUID      `json:"user_id" gorm:"type:uuid;not null"`
-	RoleID     uuid.UUID      `json:"role_id" gorm:"type:uuid;not null"`
-	AssignedBy uuid.UUID      `json:"assigned_by" gorm:"type:uuid"`
-	AssignedAt time.Time      `json:"assigned_at"`
+	UserID     uuid.UUID      `json:"user_id" gorm:"type:uuid;not null;primaryKey"`
+	RoleID     uuid.UUID      `json:"role_id" gorm:"type:uuid;not null;primaryKey"`
+	AssignedBy *uuid.UUID     `json:"assigned_by,omitempty" gorm:"type:uuid"`
+	AssignedAt *time.Time     `json:"assigned_at,omitempty"`
 	ExpiresAt  *time.Time     `json:"expires_at,omitempty"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `json:"-" gorm:"index"`
 
-	User           User `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	Role           Role `json:"role,omitempty" gorm:"foreignKey:RoleID"`
-	AssignedByUser User `json:"assigned_by_user,omitempty" gorm:"foreignKey:AssignedBy"`
+	User           User  `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Role           Role  `json:"role,omitempty" gorm:"foreignKey:RoleID"`
+	AssignedByUser *User `json:"assigned_by_user,omitempty" gorm:"foreignKey:AssignedBy"`
 }
 
 type RolePermission struct {
-	ID           uuid.UUID      `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	RoleID       uuid.UUID      `json:"role_id" gorm:"type:uuid;not null"`
-	PermissionID uuid.UUID      `json:"permission_id" gorm:"type:uuid;not null"`
-	AssignedBy   uuid.UUID      `json:"assigned_by" gorm:"type:uuid"`
-	AssignedAt   time.Time      `json:"assigned_at"`
+	RoleID       uuid.UUID      `json:"role_id" gorm:"type:uuid;not null;primaryKey"`
+	PermissionID uuid.UUID      `json:"permission_id" gorm:"type:uuid;not null;primaryKey"`
+	AssignedBy   *uuid.UUID     `json:"assigned_by,omitempty" gorm:"type:uuid"`
+	AssignedAt   *time.Time     `json:"assigned_at,omitempty"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
 
 	Role           Role       `json:"role,omitempty" gorm:"foreignKey:RoleID"`
 	Permission     Permission `json:"permission,omitempty" gorm:"foreignKey:PermissionID"`
-	AssignedByUser User       `json:"assigned_by_user,omitempty" gorm:"foreignKey:AssignedBy"`
+	AssignedByUser *User      `json:"assigned_by_user,omitempty" gorm:"foreignKey:AssignedBy"`
 }
 
 type UserAttribute struct {
 	ID        uuid.UUID      `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	UserID    uuid.UUID      `json:"user_id" gorm:"type:uuid;not null"`
-	Name      string         `json:"name" gorm:"not null"`
+	Name      string         `json:"name" gorm:"column:key;not null"`
 	Value     string         `json:"value" gorm:"not null"`
-	Type      string         `json:"type" gorm:"not null"`
-	Source    string         `json:"source"`
+	Type      string         `json:"type" gorm:"column:data_type;not null"`
+	Source    string         `json:"source" gorm:"-"`
 	ExpiresAt *time.Time     `json:"expires_at,omitempty"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

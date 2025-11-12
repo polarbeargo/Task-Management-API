@@ -18,8 +18,19 @@ type TaskHandler struct {
 }
 
 func (h *TaskHandler) CreateTask(c *gin.Context) {
+
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userIDStr, ok := userIDInterface.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
 	var taskInput struct {
-		UserID      string `json:"user_id" binding:"required"`
 		Title       string `json:"title" binding:"required"`
 		Description string `json:"description"`
 		Status      string `json:"status"`
@@ -28,15 +39,33 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	if taskInput.Status == "" {
+		taskInput.Status = "pending"
+	}
+
+	taskID, err := uuid.NewV4()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed to generate task ID",
+			"details": err.Error(),
+		})
+		return
+	}
+
 	task := models.Task{
-		UserID:      uuid.FromStringOrNil(taskInput.UserID),
+		ID:          taskID,
+		UserID:      uuid.FromStringOrNil(userIDStr),
 		Title:       taskInput.Title,
 		Description: taskInput.Description,
 		Status:      taskInput.Status,
 	}
-	err := h.taskService.CreateTask(h.db, task)
+	err = h.taskService.CreateTask(h.db, task)
 	if err != nil {
-		handleTaskError(c, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed to create task",
+			"details": err.Error(),
+		})
 		return
 	}
 	c.JSON(http.StatusCreated, task)

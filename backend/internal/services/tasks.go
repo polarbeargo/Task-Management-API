@@ -43,7 +43,7 @@ func (s *TaskServiceImpl) GetTasksPaginated(db *gorm.DB, sortBy, order, page, pa
 	var tasks []models.Task
 	var total int64
 
-	allowedSort := map[string]bool{"created_at": true, "updated_at": true, "due_date": true, "title": true, "priority": true}
+	allowedSort := map[string]bool{"created_at": true, "updated_at": true, "title": true}
 	if !allowedSort[sortBy] {
 		sortBy = "created_at"
 	}

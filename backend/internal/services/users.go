@@ -12,6 +12,7 @@ type UserService interface {
 	GetUserProfileMalicious(db *gorm.DB, userID string) ([]models.User, error)
 	GetUsers(db *gorm.DB) ([]models.User, error)
 	DeleteUser(db *gorm.DB, userId uuid.UUID) error
+	UpdateUser(db *gorm.DB, userID uuid.UUID, updates map[string]interface{}) error
 }
 
 type UserServiceImpl struct {
@@ -56,6 +57,14 @@ func (s *UserServiceImpl) GetUsers(db *gorm.DB) ([]models.User, error) {
 
 func (s *UserServiceImpl) DeleteUser(db *gorm.DB, userId uuid.UUID) error {
 	result := db.Delete(&models.User{}, "id = ?", userId)
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return result.Error
+}
+
+func (s *UserServiceImpl) UpdateUser(db *gorm.DB, userID uuid.UUID, updates map[string]interface{}) error {
+	result := db.Model(&models.User{}).Where("id = ?", userID).Updates(updates)
 	if result.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}

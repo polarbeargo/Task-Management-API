@@ -83,13 +83,13 @@ func (s *RegisterServiceImpl) RegisterUser(db *gorm.DB, req RegistrationRequest)
 		return nil, err
 	}
 
+	now := time.Now()
 	userRoleAssignment := models.UserRole{
-		ID:         uuid.Must(uuid.NewV4()),
 		UserID:     user.ID,
 		RoleID:     userRole.ID,
-		AssignedAt: time.Now(),
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		AssignedAt: &now,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 
 	if err := tx.Create(&userRoleAssignment).Error; err != nil {
@@ -97,65 +97,48 @@ func (s *RegisterServiceImpl) RegisterUser(db *gorm.DB, req RegistrationRequest)
 		return nil, err
 	}
 
-	defaultAttributes := []models.UserAttribute{
-		{
-			ID:        uuid.Must(uuid.NewV4()),
-			UserID:    user.ID,
-			Name:      "department",
-			Value:     req.Department,
-			Type:      "string",
-			Source:    "registration",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
-		{
-			ID:        uuid.Must(uuid.NewV4()),
-			UserID:    user.ID,
-			Name:      "position",
-			Value:     req.Position,
-			Type:      "string",
-			Source:    "registration",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
-		{
-			ID:        uuid.Must(uuid.NewV4()),
-			UserID:    user.ID,
-			Name:      "account_type",
-			Value:     "standard",
-			Type:      "string",
-			Source:    "system",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
-		{
-			ID:        uuid.Must(uuid.NewV4()),
-			UserID:    user.ID,
-			Name:      "clearance_level",
-			Value:     "basic",
-			Type:      "string",
-			Source:    "system",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
-	}
+	// Skip user attributes for now - debug registration issue
+	// TODO: Fix user attributes
+	/*
+		defaultAttributes := []models.UserAttribute{
+			{
+				ID:        uuid.Must(uuid.NewV4()),
+				UserID:    user.ID,
+				Name:      "account_type",
+				Value:     "standard",
+				Type:      "string",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			{
+				ID:        uuid.Must(uuid.NewV4()),
+				UserID:    user.ID,
+				Name:      "clearance_level",
+				Value:     "basic",
+				Type:      "string",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+		}
 
-	for _, attr := range defaultAttributes {
-		if attr.Value != "" {
-			if err := tx.Create(&attr).Error; err != nil {
-				tx.Rollback()
-				return nil, err
+		for _, attr := range defaultAttributes {
+			if attr.Value != "" {
+				if err := tx.Create(&attr).Error; err != nil {
+					tx.Rollback()
+					return nil, err
+				}
 			}
 		}
-	}
+	*/
 
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
-	if err := db.Preload("Roles").First(&user, user.ID).Error; err != nil {
-		return nil, err
-	}
+	// Temporarily disable preload for debugging
+	// if err := db.Preload("Roles").First(&user, user.ID).Error; err != nil {
+	// 	return nil, err
+	// }
 
 	return &user, nil
 }
