@@ -107,6 +107,11 @@ func (m *MockUserService) DeleteUser(db *gorm.DB, userID uuid.UUID) error {
 	return args.Error(0)
 }
 
+func (m *MockUserService) UpdateUser(db *gorm.DB, userID uuid.UUID, updates map[string]interface{}) error {
+	args := m.Called(db, userID, updates)
+	return args.Error(0)
+}
+
 type AuthorizationHandlerTestSuite struct {
 	suite.Suite
 	db          *gorm.DB
@@ -170,13 +175,13 @@ func (suite *AuthorizationHandlerTestSuite) createAuthMiddleware() gin.HandlerFu
 		}
 
 		if authHeader == "Bearer valid_user_token" {
-			c.Set("user_id", suite.userID) 
+			c.Set("user_id", suite.userID)
 			c.Set("user_role", "user")
 		} else if authHeader == "Bearer valid_admin_token" {
-			c.Set("user_id", suite.adminID) 
+			c.Set("user_id", suite.adminID)
 			c.Set("user_role", "admin")
 		} else if authHeader == "Bearer valid_manager_token" {
-			c.Set("user_id", suite.managerID) 
+			c.Set("user_id", suite.managerID)
 			c.Set("user_role", "user")
 		} else {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid_token"})
@@ -296,6 +301,8 @@ func (suite *AuthorizationHandlerTestSuite) TestUpdateUserProfile_OwnProfile_Suc
 		Reason:   "User can update own profile",
 	}, nil)
 
+	suite.userService.On("UpdateUser", suite.db, suite.userID, mock.AnythingOfType("map[string]interface {}")).Return(nil)
+
 	updateData := map[string]interface{}{
 		"first_name": "Updated",
 		"last_name":  "Name",
@@ -316,6 +323,7 @@ func (suite *AuthorizationHandlerTestSuite) TestUpdateUserProfile_OwnProfile_Suc
 	assert.Equal(suite.T(), "User updated successfully", response["message"])
 
 	suite.authService.AssertExpectations(suite.T())
+	suite.userService.AssertExpectations(suite.T())
 }
 
 func (suite *AuthorizationHandlerTestSuite) TestUpdateUserProfile_OtherProfile_Denied() {

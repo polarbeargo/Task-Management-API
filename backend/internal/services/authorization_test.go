@@ -119,9 +119,9 @@ func (suite *AuthorizationTestSuite) SetupSuite() {
 		CREATE TABLE user_attributes (
 			id TEXT PRIMARY KEY,
 			user_id TEXT NOT NULL,
-			name TEXT NOT NULL,
+			key TEXT NOT NULL,
 			value TEXT NOT NULL,
-			type TEXT NOT NULL,
+			data_type TEXT NOT NULL,
 			source TEXT,
 			expires_at DATETIME,
 			created_at DATETIME,
@@ -318,25 +318,22 @@ func (suite *AuthorizationTestSuite) SetupTest() {
 
 	userRoles := []models.UserRole{
 		{
-			ID:         uuid.Must(uuid.NewV4()),
 			UserID:     suite.userID,
 			RoleID:     suite.userRole.ID,
-			AssignedBy: suite.adminID,
-			AssignedAt: time.Now(),
+			AssignedBy: &suite.adminID,
+			AssignedAt: &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:         uuid.Must(uuid.NewV4()),
 			UserID:     suite.adminID,
 			RoleID:     suite.adminRole.ID,
-			AssignedBy: suite.adminID,
-			AssignedAt: time.Now(),
+			AssignedBy: &suite.adminID,
+			AssignedAt: &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:         uuid.Must(uuid.NewV4()),
 			UserID:     suite.managerID,
 			RoleID:     suite.userRole.ID,
-			AssignedBy: suite.adminID,
-			AssignedAt: time.Now(),
+			AssignedBy: &suite.adminID,
+			AssignedAt: &[]time.Time{time.Now()}[0],
 		},
 	}
 
@@ -347,74 +344,64 @@ func (suite *AuthorizationTestSuite) SetupTest() {
 
 	rolePermissions := []models.RolePermission{
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.userRole.ID,
 			PermissionID: suite.taskPerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.userRole.ID,
 			PermissionID: taskCreatePerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.userRole.ID,
 			PermissionID: taskUpdatePerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.userRole.ID,
 			PermissionID: taskDeletePerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.adminRole.ID,
 			PermissionID: suite.taskPerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.adminRole.ID,
 			PermissionID: suite.userPerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.adminRole.ID,
 			PermissionID: taskCreatePerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.adminRole.ID,
 			PermissionID: taskUpdatePerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.adminRole.ID,
 			PermissionID: taskDeletePerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 		{
-			ID:           uuid.Must(uuid.NewV4()),
 			RoleID:       suite.adminRole.ID,
 			PermissionID: userUpdatePerm.ID,
-			AssignedBy:   suite.adminID,
-			AssignedAt:   time.Now(),
+			AssignedBy:   &suite.adminID,
+			AssignedAt:   &[]time.Time{time.Now()}[0],
 		},
 	}
 
@@ -675,7 +662,7 @@ func (suite *AuthorizationTestSuite) TestSetUserAttribute() {
 	assert.NoError(suite.T(), err)
 
 	var attr models.UserAttribute
-	err = suite.db.Where("user_id = ? AND name = ?", suite.userID, "clearance_level").First(&attr).Error
+	err = suite.db.Where("user_id = ? AND key = ?", suite.userID, "clearance_level").First(&attr).Error
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "secret", attr.Value)
 	assert.Equal(suite.T(), "string", attr.Type)

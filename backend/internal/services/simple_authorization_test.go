@@ -84,9 +84,9 @@ func (suite *SimpleAuthorizationTestSuite) SetupSuite() {
 		CREATE TABLE user_attributes (
 			id TEXT PRIMARY KEY,
 			user_id TEXT,
-			name TEXT,
+			key TEXT,
 			value TEXT,
-			type TEXT,
+			data_type TEXT,
 			source TEXT,
 			deleted_at DATETIME,
 			created_at DATETIME,
