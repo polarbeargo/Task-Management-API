@@ -97,39 +97,28 @@ func (s *RegisterServiceImpl) RegisterUser(db *gorm.DB, req RegistrationRequest)
 		return nil, err
 	}
 
-	// Skip user attributes for now - debug registration issue
-	// TODO: Fix user attributes
-	/*
-		defaultAttributes := []models.UserAttribute{
-			{
-				ID:        uuid.Must(uuid.NewV4()),
-				UserID:    user.ID,
-				Name:      "account_type",
-				Value:     "standard",
-				Type:      "string",
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
-			},
-			{
-				ID:        uuid.Must(uuid.NewV4()),
-				UserID:    user.ID,
-				Name:      "clearance_level",
-				Value:     "basic",
-				Type:      "string",
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
-			},
-		}
+	// Create default user attributes for ABAC
+	defaultAttributes := []models.UserAttribute{
+		{
+			UserID: user.ID,
+			Name:   "account_type",
+			Value:  "standard",
+			Type:   "string",
+		},
+		{
+			UserID: user.ID,
+			Name:   "clearance_level",
+			Value:  "basic",
+			Type:   "string",
+		},
+	}
 
-		for _, attr := range defaultAttributes {
-			if attr.Value != "" {
-				if err := tx.Create(&attr).Error; err != nil {
-					tx.Rollback()
-					return nil, err
-				}
-			}
+	for _, attr := range defaultAttributes {
+		if err := tx.Create(&attr).Error; err != nil {
+			tx.Rollback()
+			return nil, err
 		}
-	*/
+	}
 
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
