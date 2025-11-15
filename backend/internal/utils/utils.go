@@ -4,7 +4,21 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/gofrs/uuid"
+	"github.com/golang-jwt/jwt/v5"
 )
+
+func ParseJWT(tokenString string, secret string) (*jwt.Token, error) {
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+}
+
+func IsValidUUID(u string) bool {
+	_, err := uuid.FromString(u)
+	return err == nil
+}
 
 func GetEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
