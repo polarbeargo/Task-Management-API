@@ -258,18 +258,19 @@ func (app *Application) setupRoutes() {
 			userRoutes.PUT("/profile", userHandler.UpdateUserProfile)
 		}
 
-		// Cache management routes
+		// Cache management routes (admin only)
 		if app.Cache != nil {
 			cacheHandler := handlers.NewCacheHandler(app.CacheManager, app.Cache)
 			cacheRoutes := protected.Group("/cache")
+			cacheRoutes.Use(app.adminOnlyMiddleware())
 			{
-				// Original endpoints
+				// Cache statistics and management
 				cacheRoutes.GET("/stats", cacheHandler.GetCacheStats)
-				cacheRoutes.DELETE("/clear", app.clearCacheHandler()) // (admin only - add authorization check in handler)
-
-				// Cache warming management endpoints
-				cacheRoutes.POST("/warm", cacheHandler.WarmCache)
+				cacheRoutes.DELETE("/clear", app.clearCacheHandler())
 				cacheRoutes.GET("/health", cacheHandler.GetCacheHealth)
+
+				// Cache warming operations
+				cacheRoutes.POST("/warm", cacheHandler.WarmCache)
 
 				// Job management endpoints
 				jobRoutes := cacheRoutes.Group("/jobs")
@@ -405,14 +406,7 @@ func (app *Application) readinessHandler() gin.HandlerFunc {
 	}
 }
 
-func (app *Application) cacheStatsHandler() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		stats := app.Cache.Stats()
-		c.JSON(http.StatusOK, stats)
-	}
-}
-
-func (app *Application) clearCacheHandler() gin.HandlerFunc {
+func (app *Application) adminOnlyMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDStr, exists := c.Get("user_id")
 		if !exists {
@@ -420,6 +414,7 @@ func (app *Application) clearCacheHandler() gin.HandlerFunc {
 				"error":   "unauthorized",
 				"message": "User ID not found in context",
 			})
+			c.Abort()
 			return
 		}
 
@@ -437,26 +432,51 @@ func (app *Application) clearCacheHandler() gin.HandlerFunc {
 				"error":   "invalid_user_id",
 				"message": "Invalid user ID format",
 			})
+			c.Abort()
 			return
 		}
 
 		ctx := c.Request.Context()
 		isAdmin, err := app.AuthzService.HasRole(ctx, userID, "admin")
 		if err != nil {
-			log.Printf("Error checking admin role: %v", err)
+			log.Printf("Error checking admin role for user %s: %v", userID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "authorization_failed",
 				"message": "Failed to verify admin role",
 			})
+			c.Abort()
 			return
 		}
 
 		if !isAdmin {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error":   "forbidden",
-				"message": "Admin role required to clear cache",
+				"message": "Admin role required for this operation",
 			})
+			c.Abort()
 			return
+		}
+
+		c.Next()
+	}
+}
+
+func (app *Application) cacheStatsHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		stats := app.Cache.Stats()
+		c.JSON(http.StatusOK, stats)
+	}
+}
+
+func (app *Application) clearCacheHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDStr, _ := c.Get("user_id")
+		var userIDParsed string
+		switch v := userIDStr.(type) {
+		case string:
+			userIDParsed = v
+		default:
+			userIDParsed = fmt.Sprintf("%v", v)
 		}
 
 		if err := app.Cache.DeletePattern("*"); err != nil {
@@ -464,7 +484,7 @@ func (app *Application) clearCacheHandler() gin.HandlerFunc {
 			return
 		}
 
-		log.Printf("Cache cleared by admin user: %s", userID)
+		log.Printf("Cache cleared by admin user: %s", userIDParsed)
 		c.JSON(http.StatusOK, gin.H{"message": "cache cleared successfully"})
 	}
 }
