@@ -42,8 +42,8 @@ services:
   # Backend API (Scalable)
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./backend/Dockerfile
     # container_name removed to allow scaling multiple instances
     environment:
       # Database Configuration

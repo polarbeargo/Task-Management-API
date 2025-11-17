@@ -4,14 +4,17 @@ FROM golang:1.23-alpine AS builder
 # Set the working directory
 WORKDIR /app
 
-# Copy go.mod and go.sum
-COPY go.mod go.sum ./
+# Copy go.mod and go.sum from backend directory
+COPY backend/go.mod backend/go.sum ./
 
 # Download dependencies
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy backend source code
+COPY backend/ .
+
+# Copy migration files from database-migrations directory
+COPY database-migrations/migrations /app/migrations
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main .
@@ -25,8 +28,14 @@ WORKDIR /app
 # Create a new user and group
 RUN addgroup -S nonrootgroup && adduser -S nonrootuser -G nonrootgroup
 
+# Create migrations directory
+RUN mkdir -p /app/migrations
+
 # Copy the compiled binary from the previous stage
 COPY --from=builder /app/main .
+
+# Copy migration files from the builder stage
+COPY --from=builder /app/migrations /app/migrations
 
 # Change ownership of the working directory and binary to the new user
 RUN chown -R nonrootuser:nonrootgroup /app
