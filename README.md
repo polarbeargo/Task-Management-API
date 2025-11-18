@@ -266,7 +266,8 @@ classDiagram
     class Token {
         +UUID ID
         +UUID UserId
-        +UUID RefreshToken
+        +UUID JTI
+        +string RefreshToken
         +time.Time ExpiresAt
         +time.Time CreatedAt
         +time.Time UpdatedAt
