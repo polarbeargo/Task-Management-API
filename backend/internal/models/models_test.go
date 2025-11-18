@@ -60,12 +60,14 @@ func TestUser_Validation(t *testing.T) {
 
 func TestToken_Validation(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	refreshToken := uuid.Must(uuid.NewV4())
-	expiresAt := time.Now().Add(24 * time.Hour)
+	jti := uuid.Must(uuid.NewV4())
+	refreshToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTIzIiwidHlwZSI6InJlZnJlc2giLCJqdGkiOiI0NTYiLCJpYXQiOjE2MDk0NTkyMDAsImV4cCI6MTYwOTQ2MjgwMH0.test"
+	expiresAt := time.Now().Add(time.Hour)
 
 	token := models.Token{
 		ID:           uuid.Must(uuid.NewV4()),
 		UserId:       userID,
+		JTI:          jti,
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt,
 	}
@@ -74,8 +76,12 @@ func TestToken_Validation(t *testing.T) {
 		t.Errorf("Expected UserID %s, got %s", userID.String(), token.UserId.String())
 	}
 
+	if token.JTI != jti {
+		t.Errorf("Expected JTI %s, got %s", jti.String(), token.JTI.String())
+	}
+
 	if token.RefreshToken != refreshToken {
-		t.Errorf("Expected RefreshToken %s, got %s", refreshToken.String(), token.RefreshToken.String())
+		t.Errorf("Expected RefreshToken %s, got %s", refreshToken, token.RefreshToken)
 	}
 
 	if token.ExpiresAt != expiresAt {
